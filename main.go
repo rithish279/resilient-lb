@@ -9,28 +9,38 @@ import (
 	"sync/atomic"
 )
 
+// enabling internal connection pool reusablilty across requests
 type Backend struct {
 	URL 	*url.URL
 	Healthy	atomic.Bool
+	proxy	*httputil.ReverseProxy
+}
+
+// NewBackend constructs a Backend and wires up its reverse proxy
+func NewBackend(rawURL string) *Backend {
+	u := mustParseURL(rawURL)
+	b := &Backend{
+		URL: u,
+		proxy: httputil.NewSingleHostReverseProxy(u),
+	}
+	b.Healthy.Store(true)
+	return b
 }
 
 func main() {
 	backends := []*Backend{
-		{URL: mustParseURL("http://localhost:9001")},
-		{URL: mustParseURL("http://localhost:9002")},
+		NewBackend("http://localhost:9001"),
+		NewBackend("http://localhost:9002"),
 	}
-	backends[0].Healthy.Store(true)
-	backends[1].Healthy.Store(true)
 
-	var counter uint32 = 0
+	var counter atomic.Uint32
 	
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// simple round-robin: pick next automatically
-		idx := atomic.AddUint32(&counter, 1) % uint32(len(backends))
+		idx := counter.Add(1) % uint32(len(backends))
 		backend := backends[idx]
 
 		if !backend.Healthy.Load() {
-			for i := 0; i < len(backends); i++ {
+			for i := 0; i <= len(backends); i++ {
 				idx = (idx + 1) % uint32(len(backends))
 				if backends[idx].Healthy.Load() {
 					backend = backends[idx]
@@ -40,15 +50,14 @@ func main() {
 		}
 
 		if !backend.Healthy.Load() {
-			http.Error(w, "No healthy backends", http.StatusServiceUnavailable)
-			return
+			http.Error(w, "no healthy backends available", http.StatusServiceUnavailable)
+			return 
 		}
 
-		proxy := httputil.NewSingleHostReverseProxy(backend.URL)
-		proxy.ServeHTTP(w, r)
+		backend.proxy.ServeHTTP(w, r)
 	})
 
-	fmt.Println("Load balancer starting on :8080")
+	fmt.Println("load balancer starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
