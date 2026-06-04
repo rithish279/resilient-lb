@@ -24,7 +24,7 @@ func NewBackend(rawURL string) *Backend {
 		URL: u,
 		proxy: httputil.NewSingleHostReverseProxy(u),
 	}
-	b.Healthy.Store(true)
+	
 	return b
 }
 
@@ -53,8 +53,8 @@ func checkHealth(b *Backend, client *http.Client) {
 	url := b.URL.String() + "/"
 	resp, err := client.Get(url)
 
-	// Healthy only on clean 200 OK
-	isHealthy := err == nil && resp.StatusCode == http.StatusOK
+	// Any response at all means the server is up
+	isHealthy := err == nil 
 	if resp != nil {
 		resp.Body.Close()
 	}
