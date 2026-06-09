@@ -7,9 +7,10 @@ import (
 )
 
 type Backend struct {
-	URL 	*url.URL
-	Healthy	atomic.Bool
-	proxy	*httputil.ReverseProxy
+	URL 		*url.URL
+	Healthy		atomic.Bool
+	proxy		*httputil.ReverseProxy
+	activeConns	atomic.Int64
 }
 
 func NewBackend(rawURL string) *Backend {
@@ -28,4 +29,16 @@ func mustParseURL(raw string) *url.URL {
 		panic(err)
 	}
 	return u
+}
+
+func (b *Backend) IncrementConns() {
+	b.activeConns.Add(1)
+}
+
+func (b *Backend) DecrementConns() {
+	b.activeConns.Add(-1)
+}
+
+func (b *Backend) ActiveConns() int64 {
+	return b.activeConns.Load()
 }
