@@ -11,19 +11,28 @@ type Algorithm int
 const (
 	RoundRobin Algorithm = iota
 	LeastConnections
+	Weighted
 )
 
 type LoadBalancer struct {
 	backends  []*Backend
+	slots	  []*Backend	
 	algorithm Algorithm
 	counter   atomic.Uint32
 }
 
 func New(backends []*Backend, algorithm Algorithm) *LoadBalancer {
-	return &LoadBalancer{
+	lb := &LoadBalancer{
 		backends: backends,
 		algorithm: algorithm,
 	}
+
+	for _, b := range backends {
+		for i := 0; i < b.Weight; i++ {
+			lb.slots = append(lb.slots, b)
+		}
+	}
+	return lb
 }
 
 func (lb *LoadBalancer) pickRoundRobin() *Backend {
@@ -53,10 +62,25 @@ func (lb *LoadBalancer) pickLeastConnections() *Backend {
 	return best
 }
 
+func (lb *LoadBalancer) pickWeighted() *Backend {
+	if (len(lb.slots) == 0) {
+		return lb.pickRoundRobin()
+	}
+	for i := 0; i < len(lb.slots); i++ {
+		idx := lb.counter.Add(1) % uint32(len(lb.slots))
+		if lb.slots[idx].Healthy.Load() {
+			return lb.slots[idx]
+		}
+	}
+	return nil
+}
+
 func (lb *LoadBalancer) pick() *Backend {
 	switch lb.algorithm {
 	case LeastConnections:
 		return lb.pickLeastConnections()
+	case Weighted:
+		return lb.pickWeighted()
 	default:
 		return lb.pickRoundRobin()
 	}

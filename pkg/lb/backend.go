@@ -11,13 +11,15 @@ type Backend struct {
 	Healthy		atomic.Bool
 	proxy		*httputil.ReverseProxy
 	activeConns	atomic.Int64
+	Weight		int
 }
 
-func NewBackend(rawURL string) *Backend {
+func NewBackend(rawURL string, weight int) *Backend {
 	u := mustParseURL(rawURL)
 	b := &Backend{
 		URL: u,
 		proxy: httputil.NewSingleHostReverseProxy(u),
+		Weight: weight,
 	}
 	
 	return b
