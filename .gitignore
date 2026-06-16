@@ -1,0 +1,27 @@
+# Binaries
+resilient-lb
+*.exe
+*.out
+*.test
+
+# Build artifacts
+/bin/
+
+# Environment & secrets
+.env
+*.pem
+*.key
+*.crt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage.out
+coverage.html
