@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rithish279/resilient-lb/pkg/api"
 	"github.com/rithish279/resilient-lb/pkg/lb"
 )
 
@@ -17,10 +18,19 @@ func main() {
 
 	lb.StartHealthChecks(backends, 5*time.Second, 2*time.Second)
 
-	balancer := lb.New(backends, lb.Weighted)
+	balancer := lb.New(backends, lb.RoundRobin)
 
-	http.Handle("/", balancer)
+	// Port 8080 => Traffic
+	go func() {
+		fmt.Println("Load balancer starting on :8080")
+		log.Fatal(http.ListenAndServe(":8080", balancer))
+	} ()
 
-	fmt.Println("load balancer starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Port 8888 => Admin
+	adminMux := http.NewServeMux()
+	adminHandler := api.NewAdminHandler(backends)
+	adminHandler.RegisterRoutes(adminMux)
+
+	fmt.Print("admin api starting on :8888")
+	log.Fatal(http.ListenAndServe(":8888", adminMux))
 }
