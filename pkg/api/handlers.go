@@ -8,10 +8,11 @@ import (
 )
 
 type BackendStatus struct {
-	URL         string `json:"url"`
-	Healthy     bool   `json:"healthy"`
-	ActiveConns int64  `json:"active_connections"`
-	Weight      int    `json:"weight"`
+	URL         	string `json:"url"`
+	Healthy     	bool   `json:"healthy"`
+	ActiveConns 	int64  `json:"active_connections"`
+	Weight      	int    `json:"weight"`
+	CircuitBreaker 	string `json:"circuit_breaker"`
 }
 
 type AdminHandler struct {
@@ -35,6 +36,7 @@ func (h *AdminHandler) handleBackends(w http.ResponseWriter, r *http.Request) {
 			Healthy: b.Healthy.Load(),
 			ActiveConns: b.ActiveConns(),
 			Weight: b.Weight,
+			CircuitBreaker: b.CircuitBreaker.State(),
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")

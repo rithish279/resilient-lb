@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/http"
 	"sync/atomic"
+
 )
 
 type Algorithm int
@@ -19,6 +20,11 @@ type LoadBalancer struct {
 	slots	  []*Backend	
 	algorithm Algorithm
 	counter   atomic.Uint32
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
 }
 
 func New(backends []*Backend, algorithm Algorithm) *LoadBalancer {
@@ -92,4 +98,26 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no healthy backends available", http.StatusServiceUnavailable)
 		return
 	}
+
+	if !backend.CircuitBreaker.Allow() {
+		http.Error(w, "circuit breaker open", http.StatusServiceUnavailable)
+		return
+	}
+
+	backend.IncrementConns()
+	defer backend.DecrementConns()
+
+	rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+	backend.proxy.ServeHTTP(rw, r)
+
+	if (rw.statusCode >= 500) {
+		backend.CircuitBreaker.Failure()
+	} else {
+		backend.CircuitBreaker.Success()
+	}
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
 }

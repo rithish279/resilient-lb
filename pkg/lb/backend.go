@@ -4,14 +4,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync/atomic"
+	"time"
 )
 
 type Backend struct {
-	URL 		*url.URL
-	Healthy		atomic.Bool
-	proxy		*httputil.ReverseProxy
-	activeConns	atomic.Int64
-	Weight		int
+	URL 			*url.URL
+	Healthy			atomic.Bool
+	proxy			*httputil.ReverseProxy
+	activeConns		atomic.Int64
+	Weight			int
+	CircuitBreaker 	*CircuitBreaker
 }
 
 func NewBackend(rawURL string, weight int) *Backend {
@@ -20,6 +22,7 @@ func NewBackend(rawURL string, weight int) *Backend {
 		URL: u,
 		proxy: httputil.NewSingleHostReverseProxy(u),
 		Weight: weight,
+		CircuitBreaker: NewCircuitBreaker(5, 30*time.Second),
 	}
 	
 	return b
