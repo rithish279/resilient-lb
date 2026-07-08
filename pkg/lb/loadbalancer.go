@@ -4,7 +4,9 @@ import (
 	"math"
 	"net/http"
 	"sync/atomic"
+	"time"
 
+	"github.com/rithish279/resilient-lb/pkg/chaos"
 )
 
 type Algorithm int
@@ -16,10 +18,11 @@ const (
 )
 
 type LoadBalancer struct {
-	backends  []*Backend
-	slots	  []*Backend	
-	algorithm Algorithm
-	counter   atomic.Uint32
+	backends  	[]*Backend
+	slots	  	[]*Backend	
+	algorithm 	Algorithm
+	counter   	atomic.Uint32
+	chaosEngine	*chaos.Engine
 }
 
 type responseWriter struct {
@@ -27,10 +30,11 @@ type responseWriter struct {
 	statusCode int
 }
 
-func New(backends []*Backend, algorithm Algorithm) *LoadBalancer {
+func New(backends []*Backend, algorithm Algorithm, engine *chaos.Engine) *LoadBalancer {
 	lb := &LoadBalancer{
 		backends: backends,
 		algorithm: algorithm,
+		chaosEngine: engine,
 	}
 
 	for _, b := range backends {
@@ -92,6 +96,37 @@ func (lb *LoadBalancer) pick() *Backend {
 	}
 }
 
+// applyCI applies the chaos config
+func applyCI(w http.ResponseWriter, cfg *chaos.Config) bool {
+	switch cfg.Type {
+	case chaos.FailureLatency:
+		time.Sleep(time.Duration(cfg.LatencyMs) * time.Millisecond)
+		return false // forwarding but, delayed
+
+	case chaos.FailureError:
+		code := cfg.ErrorCode
+		if (code == 0) {
+			code = http.StatusServiceUnavailable
+		}
+		http.Error(w, "chaos: injected error", code)
+		return true
+
+	case chaos.FailureDrop: // then close connection without responding
+		if hijacker, ok := w.(http.Hijacker); ok {
+			conn, _, _ := hijacker.Hijack()
+			if (conn != nil) {
+				conn.Close()
+			}
+		}
+		return true
+
+	case chaos.FailureKillSwitch:
+		http.Error(w, "chaos: backend unavailable", http.StatusServiceUnavailable)
+		return true
+	}
+	return false
+}
+
 func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	backend := lb.pick()
 	if backend == nil {
@@ -102,6 +137,14 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !backend.CircuitBreaker.Allow() {
 		http.Error(w, "circuit breaker open", http.StatusServiceUnavailable)
 		return
+	}
+
+	if (lb.chaosEngine != nil) {
+		if cfg := lb.chaosEngine.ShouldInject(backend.URL.String()); cfg != nil {
+			if handled := applyCI(w, cfg); handled {
+				return
+			}
+		}
 	}
 
 	backend.IncrementConns()

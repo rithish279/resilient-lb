@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rithish279/resilient-lb/pkg/api"
+	"github.com/rithish279/resilient-lb/pkg/chaos"
 	"github.com/rithish279/resilient-lb/pkg/lb"
 )
 
@@ -18,18 +19,20 @@ func main() {
 
 	lb.StartHealthChecks(backends, 5*time.Second, 2*time.Second)
 
-	balancer := lb.New(backends, lb.RoundRobin)
+	chaosEngine := chaos.New()
+	balancer := lb.New(backends, lb.RoundRobin, chaosEngine)
 
-	// Port 8080 => Traffic
+
+	// Port 8080 => Traffic Server
 	go func() {
 		fmt.Println("Load balancer starting on :8080")
 		log.Fatal(http.ListenAndServe(":8080", balancer))
 	} ()
 
-	// Port 8888 => Admin
+	// Port 8888 => Admin server
 	adminMux := http.NewServeMux()
-	adminHandler := api.NewAdminHandler(backends)
-	adminHandler.RegisterRoutes(adminMux)
+	api.NewAdminHandler(backends).RegisterRoutes(adminMux)
+	api.NewChaosHandler(chaosEngine).RegisterRoutes(adminMux)
 
 	fmt.Print("admin api starting on :8888")
 	log.Fatal(http.ListenAndServe(":8888", adminMux))
