@@ -3,9 +3,11 @@ package lb
 import (
 	"math"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/rithish279/resilient-lb/metrics"
 	"github.com/rithish279/resilient-lb/pkg/chaos"
 )
 
@@ -147,11 +149,19 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	start := time.Now()
 	backend.IncrementConns()
 	defer backend.DecrementConns()
 
 	rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 	backend.proxy.ServeHTTP(rw, r)
+
+	duration := time.Since(start).Seconds()
+	status := strconv.Itoa(rw.statusCode)
+	backendURL := backend.URL.String()
+
+	metrics.RequestsTotal.WithLabelValues(backendURL, status).Inc()
+	metrics.RequestDuration.WithLabelValues(backendURL).Observe(duration)
 
 	if (rw.statusCode >= 500) {
 		backend.CircuitBreaker.Failure()

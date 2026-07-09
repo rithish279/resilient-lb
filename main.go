@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rithish279/resilient-lb/pkg/api"
 	"github.com/rithish279/resilient-lb/pkg/chaos"
 	"github.com/rithish279/resilient-lb/pkg/lb"
@@ -31,6 +32,7 @@ func main() {
 
 	// Port 8888 => Admin server
 	adminMux := http.NewServeMux()
+	adminMux.Handle("/metrics", promhttp.Handler())
 	api.NewAdminHandler(backends).RegisterRoutes(adminMux)
 	api.NewChaosHandler(chaosEngine).RegisterRoutes(adminMux)
 

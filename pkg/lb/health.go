@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/rithish279/resilient-lb/metrics"
 )
 
 func StartHealthChecks(backends []*Backend, interval, timeout time.Duration) {
@@ -46,4 +48,10 @@ func checkHealth(b *Backend, client *http.Client) {
 	} else {
 		log.Printf("[health] backend %s is DOWN", b.URL)
 	}
+
+	healthVal := 0.0
+	if (isHealthy) {
+		healthVal = 1.0
+	}
+	metrics.BackendHealth.WithLabelValues(b.URL.String()).Set(healthVal)
 }
