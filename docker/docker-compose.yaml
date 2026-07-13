@@ -1,0 +1,56 @@
+services:
+  backend1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    command: ["./backend", "-port", "9001"]
+    ports:
+      - "9001:9001"
+
+  backend2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    command: ["./backend", "-port", "9002"]
+    ports:
+      - "9002:9002"
+
+  backend3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    command: ["./backend", "-port", "9003"]
+    ports:
+      - "9003:9003"
+
+  lb:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lb
+    ports:
+      - "8080:8080"
+      - "8888:8888"
+    depends_on:
+      - backend1
+      - backend2
+      - backend3
+    environment:
+      - BACKENDS=http://backend1:9001,http://backend2:9002,http://backend3:9003
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - lb
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus

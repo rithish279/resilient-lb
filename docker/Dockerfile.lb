@@ -1,0 +1,12 @@
+FROM golang:latest AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o lb .
+
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/lb .
+EXPOSE 8080 8888
+CMD ["./lb"]
