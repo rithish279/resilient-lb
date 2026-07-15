@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rithish279/resilient-lb/metrics"
+	"github.com/rithish279/resilient-lb/pkg/metrics"
 )
 
 func StartHealthChecks(backends []*Backend, interval, timeout time.Duration) {

@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rithish279/resilient-lb/metrics"
+	"github.com/rithish279/resilient-lb/pkg/metrics"
 	"github.com/rithish279/resilient-lb/pkg/chaos"
 )
 
