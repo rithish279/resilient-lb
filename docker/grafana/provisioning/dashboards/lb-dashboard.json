@@ -10,7 +10,7 @@
       "title": "Request Rate by Backend",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus_ds" },
       "targets": [
         {
           "expr": "sum(rate(lb_requests_total[1m])) by (backend, status)",
@@ -66,7 +66,7 @@
       "title": "Circuit Breaker State",
       "type": "state-timeline",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus_ds" },
       "targets": [
         {
           "expr": "lb_circuit_breaker_open",
@@ -88,7 +88,7 @@
       "title": "Active Connections per Backend",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus_ds" },
       "targets": [
         {
           "expr": "lb_active_connections",
@@ -101,7 +101,7 @@
       "title": "Chaos Injections",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus_ds" },
       "targets": [
         {
           "expr": "sum(rate(lb_chaos_injections_total[1m])) by (type)",
