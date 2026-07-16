@@ -144,6 +144,9 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if (lb.chaosEngine != nil) {
 		if cfg := lb.chaosEngine.ShouldInject(backend.URL.String()); cfg != nil {
 			if handled := applyCI(w, cfg); handled {
+				if (cfg.Type == chaos.FailureError || cfg.Type == chaos.FailureDrop || cfg.Type == chaos.FailureKillSwitch) {
+					backend.CircuitBreaker.Failure()
+				}
 				return
 			}
 		}
