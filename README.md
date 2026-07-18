@@ -105,6 +105,7 @@ Covers circuit breaker state transitions (open/closed/half-open) and correctness
 ---
 
 ## Project Structure
+```
 resilient-lb/
 ├── main.go                    # Entry point
 ├── cmd/backend/main.go        # Test backend server
@@ -115,6 +116,7 @@ resilient-lb/
 ├── api/                       # Admin API handlers
 ├── docker/                    # Dockerfiles, docker-compose, Grafana provisioning
 └── deploy/docs/                # Architecture notes, chaos runbook, evidence
+```
 
 ---
 
