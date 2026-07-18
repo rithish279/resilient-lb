@@ -104,7 +104,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus_ds" },
       "targets": [
         {
-          "expr": "sum(rate(lb_chaos_injections_total[1m])) by (type)",
+          "expr": "sum(lb_chaos_injections_total) by (type)",
           "legendFormat": "{{type}}",
           "refId": "A"
         }
