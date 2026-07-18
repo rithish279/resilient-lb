@@ -13,11 +13,11 @@ This document describes the architecture and design decisions behind **resilient
 ┌─────────────────────────────────────────────────────┐
 │                 Load Balancer (:8080)               │
 │                                                     │
-│  1. Select backend                                 │
-│  2. Check circuit breaker                          │
-│  3. Apply chaos injection (if active)              │
-│  4. Forward request                                │
-│  5. Record metrics & circuit outcome               │
+│  1. Select backend                                  │
+│  2. Check circuit breaker                           │
+│  3. Apply chaos injection (if active)               │
+│  4. Forward request                                 │
+│  5. Record metrics & circuit outcome                │
 └──────────────────────┬──────────────────────────────┘
                        │
           ┌────────────┼────────────┐
@@ -26,9 +26,9 @@ This document describes the architecture and design decisions behind **resilient
 
 
 ┌─────────────────────────────────────────────────────┐
-│                  Admin API (:8888)                 │
+│                  Admin API (:8888)                  │
 │                                                     │
-│  /backends   /chaos/*   /metrics                   │
+│  /backends   /chaos/*   /metrics                    │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -161,13 +161,13 @@ Metrics are updated even on early-return paths (such as circuit breaker rejectio
 Load Balancer
       │
       ▼
- /metrics
+   metrics
       │
       ▼
-Prometheus
+  Prometheus
       │
       ▼
-Grafana
+    Grafana
 ```
 
 The project includes a fully containerized observability stack.
