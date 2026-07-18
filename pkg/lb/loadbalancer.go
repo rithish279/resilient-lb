@@ -137,15 +137,18 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !backend.CircuitBreaker.Allow() {
+		updateCircuitBreakerMetric(backend)
 		http.Error(w, "circuit breaker open", http.StatusServiceUnavailable)
 		return
 	}
 
 	if (lb.chaosEngine != nil) {
 		if cfg := lb.chaosEngine.ShouldInject(backend.URL.String()); cfg != nil {
+			metrics.ChaosInjection.WithLabelValues(string(cfg.Type)).Inc()
 			if handled := applyCI(w, cfg); handled {
 				if (cfg.Type == chaos.FailureError || cfg.Type == chaos.FailureDrop || cfg.Type == chaos.FailureKillSwitch) {
 					backend.CircuitBreaker.Failure()
+					updateCircuitBreakerMetric(backend)
 				}
 				return
 			}
@@ -171,6 +174,16 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		backend.CircuitBreaker.Success()
 	}
+
+	updateCircuitBreakerMetric(backend)
+}
+
+func updateCircuitBreakerMetric(b *Backend) {
+	val := 0.0
+	if (b.CircuitBreaker.State() == "open") {
+		val = 1.0
+	}
+	metrics.CircuitBreakerState.WithLabelValues(b.URL.String()).Set(val)
 }
 
 func (rw *responseWriter) WriteHeader(code int) {

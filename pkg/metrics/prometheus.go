@@ -32,7 +32,7 @@ var (
 		Help: "Circuit breaker state (1 = open, 0 = closed)",
 	}, []string{"backend"})
 
-	ChaosInjection = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	ChaosInjection = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "lb_chaos_injections_total",
 		Help: "Total number of chaos injections applied",
 	}, []string{"type"})
